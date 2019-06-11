@@ -81,36 +81,37 @@
   ([x y tile-map id color tile-size]
    (draw-tile x y id tile-map)))
 
+(defn save-image [tile-map id tile-size output-name]
+  (draw-tile 0 0 tile-map id tile-size)
+  (q/save (str "generated/" output-name ".png")))
+
 (defn setup []
   (q/background 0)
   (q/frame-rate 1)
   (let [base-image (q/load-image "resources/monochrome.png")]
    (while (not (q/loaded? base-image))
       nil)
-;;      (let [tile (get-tile base-image 16 31 9 1 1)]
-;;        (draw-image 0 0 tile)
-;;        (zed))
-      {:img base-image}))
+    (let [columns 32
+          rows 32
+          tile-size 16
+          tile-map (get-tile-map
+                 base-image
+                 columns
+                 rows
+                 tile-size
+                 1
+                 1)
+          tile-count (* columns rows)]
+      (doseq [x (range tile-count)]
+        (let [number-str (str x)
+              k (keyword number-str)]
+        (save-image tile-map k tile-size number-str))))))
 
-(defn draw [state]
-  (let[tile-map (get-tile-map
-                  (:img state)
-                  3
-                  3
-                  16
-                  1
-                  1)]
-    (draw-tile 0 0 tile-map :8 16)
-  ))
-
-(defn zed []
-(q/camera 16 16 16 0 0 0 0 0 1)
-(q/save "generated/box.png"))
-
+(defn draw [state])
 
 (q/defsketch example
   :title "image demo"
-  :size [(* 16 16) (* 16 16)]
+  :size [16 16]
   :setup setup
   :draw draw
   :middleware [m/fun-mode])

@@ -1,6 +1,7 @@
 (ns sprite-slice.core
   (:require [quil.core :as q]
-            [quil.middleware :as m]))
+            [quil.middleware :as m]
+            [clojure.java.io :as io]))
 
 (defn- get-offset [column-number spacing-size]
   (* column-number spacing-size))
@@ -91,8 +92,8 @@
   (let [base-image (q/load-image "resources/monochrome.png")]
    (while (not (q/loaded? base-image))
       nil)
-    (let [columns 32
-          rows 32
+    (let [columns 3
+          rows 3
           tile-size 16
           tile-map (get-tile-map
                  base-image
@@ -108,6 +109,34 @@
         (save-image tile-map k tile-size number-str))))))
 
 (defn draw [state])
+
+(defn zed []
+(with-open [w (-> "output.gz"
+                  clojure.java.io/output-stream
+                  java.util.zip.GZIPOutputStream.
+                  clojure.java.io/writer)]
+  (binding [*out* w]
+    (println "This will be compressed on disk."))))
+
+    (zed)
+
+(defn press-file [file]
+  (with-open [w (-> "output.gz"
+                  clojure.java.io/output-stream
+                  java.util.zip.GZIPOutputStream.
+                  clojure.java.io/writer)]
+    (.write w (java.io.FileOutputStream. file))))
+
+;;nabbed from https://stackoverflow.com/questions/17965763/zip-a-file-in-clojure
+(defn zip-directory
+  ([input-directory output-name]
+   (with-open [zip (java.util.zip.ZipOutputStream. (io/output-stream (str output-name ".zip")))]
+     (doseq [f (file-seq (io/file input-directory)) :when (.isFile f)]
+       (.putNextEntry zip (java.util.zip.ZipEntry. (.getPath f)))
+       (io/copy f zip)
+       (.closeEntry zip))))
+  ([input-directory]
+   (zip-directory input-directory input-directory)))
 
 (q/defsketch example
   :title "image demo"

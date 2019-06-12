@@ -19,12 +19,13 @@
     (q/copy source-image img [col-start row-start tile-size tile-size] [0 0 tile-size tile-size])
     img))
 
-(defn- get-tile-row-rec [image
-                         row-number
-                         {:keys [tile-size columns column-spacing-size row-spacing-size] :as args}
-                         accumulator
-                         counter]
-  (let [tile-id (-> row-number
+(defn- get-tile-row
+  ([image
+    row-number
+    {:keys [tile-size columns column-spacing-size row-spacing-size] :as args}
+    accumulator
+    counter]
+   (let [tile-id (-> row-number
                     (* columns)
                     (+ counter)
                     (str)
@@ -33,18 +34,17 @@
         accumulator (assoc accumulator tile-id tile)]
     (if (= counter (dec columns))
       accumulator
-      (get-tile-row-rec image row-number args accumulator (inc counter)))))
-
-(defn- get-tile-row [image
-                     row-number
-                     {:keys [tile-size columns column-spacing-size row-spacing-size] :as args}]
-  (get-tile-row-rec image row-number args {} 0))
+      (get-tile-row image row-number args accumulator (inc counter)))))
+  ([image
+    row-number
+    {:keys [tile-size columns column-spacing-size row-spacing-size] :as args}]
+   (get-tile-row image row-number args {} 0)))
 
 (defn- get-tile-map [source-image
                      {:keys [tile-size columns rows column-spacing-size row-spacing-size] :as args}]
   (->> (range rows)
-    (map #(get-tile-row source-image % args))
-    (into {})))
+       (map #(get-tile-row source-image % args))
+       (into {})))
 
 ;; (def get-tiles (memoize get-tile-map))
 
@@ -106,7 +106,7 @@
 (slice-image
   {:filename "resources/monochrome.png"
    :tile-size 16
-   :columns 5
+   :columns 2
    :rows 2
    :column-spacing-size 1
    :row-spacing-size 1})

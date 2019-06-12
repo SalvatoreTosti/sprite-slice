@@ -10,85 +10,60 @@
   (+ (* tile-size number) (get-offset number spacing-size)))
 
 (defn- get-tile [source-image
-                 tile-size
                  column-number
                  row-number
-                 column-spacing-size
-                 row-spacing-size]
+                 {:keys [tile-size column-spacing-size row-spacing-size] :as args}]
   (let [col-start (get-start column-number tile-size column-spacing-size)
-        row-start (get-start row-number tile-size  row-spacing-size)
+        row-start (get-start row-number tile-size row-spacing-size)
         img (q/create-image tile-size tile-size :rgb)]
     (q/copy source-image img [col-start row-start tile-size tile-size] [0 0 tile-size tile-size])
     img))
 
 (defn- get-tile-row-rec [image
                          row-number
-                         row-width
-                         tile-size
-                         column-spacing-size
-                         row-spacing-size
+                         {:keys [tile-size columns column-spacing-size row-spacing-size] :as args}
                          accumulator
                          counter]
-(let [tile-id (-> row-number
-                  (* row-width)
-                  (+ counter)
-                  (str)
-                  (keyword))
-      tile (get-tile image tile-size counter row-number column-spacing-size row-spacing-size)
-      accumulator (assoc accumulator tile-id tile)]
-      (if (= counter (dec row-width))
-        accumulator
-        (get-tile-row-rec
-          image row-number
-          row-width
-          tile-size
-          column-spacing-size
-          row-spacing-size
-          accumulator
-          (inc counter)))))
+  (let [tile-id (-> row-number
+                    (* columns)
+                    (+ counter)
+                    (str)
+                    (keyword))
+        tile (get-tile image counter row-number args)
+        accumulator (assoc accumulator tile-id tile)]
+    (if (= counter (dec columns))
+      accumulator
+      (get-tile-row-rec image row-number args accumulator (inc counter)))))
 
 (defn- get-tile-row [image
                      row-number
-                     row-width
-                     tile-size
-                     column-spacing-size
-                     row-spacing-size]
-  (let [zed
-  (get-tile-row-rec image row-number row-width tile-size column-spacing-size row-spacing-size {} 0)]
-    zed))
+                     {:keys [tile-size columns column-spacing-size row-spacing-size] :as args}]
+  (get-tile-row-rec image row-number args {} 0))
 
 (defn- get-tile-map [source-image
-                     row-count
-                     row-width
-                     tile-size
-                     column-spacing-size
-                     row-spacing-size]
-  (let [zed (->>
-              (range row-count)
-              (map #(get-tile-row source-image % row-width tile-size column-spacing-size row-spacing-size))
-              (into {}))]
-       zed))
+                     {:keys [tile-size columns rows column-spacing-size row-spacing-size] :as args}]
+  (->> (range rows)
+    (map #(get-tile-row source-image % args))
+    (into {})))
 
 ;; (def get-tiles (memoize get-tile-map))
 
-(defn draw-image [x y img tile-size]
+(defn- draw-image [x y img tile-size]
   (when (q/loaded? img)
     (q/image img (* x tile-size) (* y tile-size))))
 
-(defn draw-tile
+(defn- draw-tile
   ([x y tile-map id tile-size]
    (let [img (id tile-map)]
      (when (q/loaded? img)
-       (q/image img (* x tile-size) (* y tile-size)))))
-  ([x y tile-map id color tile-size]
-   (draw-tile x y id tile-map)))
+       (q/image img (* x tile-size) (* y tile-size))))))
 
-(defn save-image [tile-map id tile-size output-name]
+(defn- save-image [tile-map id tile-size output-name]
   (draw-tile 0 0 tile-map id tile-size)
   (q/save (str "generated/" output-name ".png")))
 
 ;;nabbed from https://stackoverflow.com/questions/17965763/zip-a-file-in-clojure
-(defn zip-directory
+(defn- zip-directory
   ([input-directory output-name]
    (with-open [zip (java.util.zip.ZipOutputStream. (io/output-stream (str output-name ".zip")))]
      (doseq [f (file-seq (io/file input-directory)) :when (.isFile f)]
@@ -98,7 +73,7 @@
   ([input-directory]
    (zip-directory input-directory input-directory)))
 
-(defn setup [{:keys [filename
+(defn- setup [{:keys [filename
                      tile-size
                      columns
                      rows
@@ -109,13 +84,7 @@
   (let [base-image (q/load-image filename)]
    (while (not (q/loaded? base-image))
       nil)
-    (let [tile-map (get-tile-map
-                 base-image
-                 rows
-                 columns
-                 tile-size
-                 column-spacing-size
-                 row-spacing-size)
+    (let [tile-map (get-tile-map base-image args)
           tile-count (* columns rows)]
       (doseq [x (range tile-count)]
         (let [number-str (str x)
@@ -124,7 +93,7 @@
       (zip-directory "generated" "test-auto-zip2")
       )))
 
-(defn draw [state]
+(defn- draw [state]
   (q/exit))
 
 (defn slice-image [{:keys [tile-size] :as args}]
@@ -134,10 +103,10 @@
     :draw draw
     :middleware [m/fun-mode]))
 
-(slice-image {
-               :filename "resources/monochrome.png"
-               :tile-size 16
-               :columns 2
-               :rows 5
-               :column-spacing-size 1
-               :row-spacing-size 1})
+(slice-image
+  {:filename "resources/monochrome.png"
+   :tile-size 16
+   :columns 5
+   :rows 2
+   :column-spacing-size 1
+   :row-spacing-size 1})

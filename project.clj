@@ -5,10 +5,12 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [compojure "1.6.1"]
                  [ring/ring-defaults "0.3.2"]
-                 [quil "3.0.0"]]
+                 [quil "3.0.0"]
+                 [ring/ring-json "0.4.0"]]
   :main sprite-slice.core
   :plugins [[lein-ring "0.12.5"]]
-  :ring {:handler sprite-slice.handler/app}
+  :ring {:handler sprite-slice.handler/app
+         :port 5000}
   :profiles
   {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
                         [ring/ring-mock "0.3.2"]]}})

@@ -63,12 +63,13 @@
                      tile-size
                      column-spacing-size
                      row-spacing-size]
-  (let [zed (->> (range row-count)
-       (map #(get-tile-row source-image % row-width tile-size column-spacing-size row-spacing-size))
-       (into {}))]
+  (let [zed (->>
+              (range row-count)
+              (map #(get-tile-row source-image % row-width tile-size column-spacing-size row-spacing-size))
+              (into {}))]
        zed))
 
-(def get-tiles (memoize get-tile-map))
+;; (def get-tiles (memoize get-tile-map))
 
 (defn draw-image [x y img tile-size]
   (when (q/loaded? img)
@@ -86,46 +87,31 @@
   (draw-tile 0 0 tile-map id tile-size)
   (q/save (str "generated/" output-name ".png")))
 
-(defn setup []
+(defn setup [{:keys [filename
+                     tile-size
+                     columns
+                     rows
+                     column-spacing-size
+                     row-spacing-size] :as args}]
   (q/background 0)
   (q/frame-rate 1)
-  (let [base-image (q/load-image "resources/monochrome.png")]
+  (let [base-image (q/load-image filename)]
    (while (not (q/loaded? base-image))
       nil)
-    (let [columns 3
-          rows 3
-          tile-size 16
-          tile-map (get-tile-map
+    (let [tile-map (get-tile-map
                  base-image
-                 columns
                  rows
+                 columns
                  tile-size
-                 1
-                 1)
+                 column-spacing-size
+                 row-spacing-size)
           tile-count (* columns rows)]
       (doseq [x (range tile-count)]
         (let [number-str (str x)
               k (keyword number-str)]
-        (save-image tile-map k tile-size number-str))))))
-
-(defn draw [state])
-
-(defn zed []
-(with-open [w (-> "output.gz"
-                  clojure.java.io/output-stream
-                  java.util.zip.GZIPOutputStream.
-                  clojure.java.io/writer)]
-  (binding [*out* w]
-    (println "This will be compressed on disk."))))
-
-    (zed)
-
-(defn press-file [file]
-  (with-open [w (-> "output.gz"
-                  clojure.java.io/output-stream
-                  java.util.zip.GZIPOutputStream.
-                  clojure.java.io/writer)]
-    (.write w (java.io.FileOutputStream. file))))
+        (save-image tile-map k tile-size number-str)))
+      (zip-directory "generated" "test-auto-zip2")
+      )))
 
 ;;nabbed from https://stackoverflow.com/questions/17965763/zip-a-file-in-clojure
 (defn zip-directory
@@ -140,9 +126,20 @@
 
 ;; (zip-directory "generated")
 
-(q/defsketch example
-  :title "image demo"
-  :size [16 16]
-  :setup setup
-  :draw draw
-  :middleware [m/fun-mode])
+
+(defn draw [state])
+
+(defn slice-image [{:keys [tile-size] :as args}]
+  (q/defsketch example
+    :size [tile-size tile-size]
+    :setup (fn [] (setup args))
+    :draw draw
+    :middleware [m/fun-mode]))
+
+(slice-image {
+               :filename "resources/monochrome.png"
+               :tile-size 16
+               :columns 2
+               :rows 5
+               :column-spacing-size 1
+               :row-spacing-size 1})

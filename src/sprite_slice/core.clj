@@ -138,6 +138,8 @@
   ([input-directory]
    (zip-directory input-directory input-directory)))
 
+;; (zip-directory "generated")
+
 (q/defsketch example
   :title "image demo"
   :size [16 16]

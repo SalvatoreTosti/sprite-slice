@@ -87,6 +87,17 @@
   (draw-tile 0 0 tile-map id tile-size)
   (q/save (str "generated/" output-name ".png")))
 
+;;nabbed from https://stackoverflow.com/questions/17965763/zip-a-file-in-clojure
+(defn zip-directory
+  ([input-directory output-name]
+   (with-open [zip (java.util.zip.ZipOutputStream. (io/output-stream (str output-name ".zip")))]
+     (doseq [f (file-seq (io/file input-directory)) :when (.isFile f)]
+       (.putNextEntry zip (java.util.zip.ZipEntry. (.getPath f)))
+       (io/copy f zip)
+       (.closeEntry zip))))
+  ([input-directory]
+   (zip-directory input-directory input-directory)))
+
 (defn setup [{:keys [filename
                      tile-size
                      columns
@@ -113,21 +124,8 @@
       (zip-directory "generated" "test-auto-zip2")
       )))
 
-;;nabbed from https://stackoverflow.com/questions/17965763/zip-a-file-in-clojure
-(defn zip-directory
-  ([input-directory output-name]
-   (with-open [zip (java.util.zip.ZipOutputStream. (io/output-stream (str output-name ".zip")))]
-     (doseq [f (file-seq (io/file input-directory)) :when (.isFile f)]
-       (.putNextEntry zip (java.util.zip.ZipEntry. (.getPath f)))
-       (io/copy f zip)
-       (.closeEntry zip))))
-  ([input-directory]
-   (zip-directory input-directory input-directory)))
-
-;; (zip-directory "generated")
-
-
-(defn draw [state])
+(defn draw [state]
+  (q/exit))
 
 (defn slice-image [{:keys [tile-size] :as args}]
   (q/defsketch example

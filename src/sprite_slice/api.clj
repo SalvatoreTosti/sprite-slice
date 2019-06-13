@@ -16,8 +16,8 @@
    :headers {"Content-Type" "application/hal+json; charset=utf-8"}
    :body (json/write-str data)})
 
-(defn get-file []
-  (file-response"resources/generated.zip"))
+(defn get-file [slug]
+  (file-response (str "output/" slug ".zip")))
 
 (defn get-file-ID [filename]
   (str (rand-int 1000000) "_" filename))
@@ -31,13 +31,15 @@
            (GET "/" [] "API HELLO WORLD")
 
 
-
 ;;download file with curl -d '{"key":"zed", "yes":"ye"}' -H "Content-Type: application/json" -X POST http://localhost:5000/api/foo --output output.zip
+;;curl -d '{"slug":"123"}' -H "Content-Type: application/json" -X POST http://localhost:5000/api/fetch --output output.zip
 
-           (POST "/foo" request
-                 (get-file))
+           (POST "/fetch" request
+                 (let [body (:body request)
+                       slug (get-in body["slug"])]
+                 (get-file slug)))
 
-;; curl -d '{"slug"size":"16", "columns":"2", "rows":"2", "column-spacing-size":"1", "row-spacing-size":"1"}' -H "Content-Type: application/json" -X POST http://localhost:5000/api/slice
+;; curl -d '{"slug":"123", "tile-size":"16", "columns":"2", "rows":"2", "column-spacing-size":"1", "row-spacing-size":"1"}' -H "Content-Type: application/json" -X POST http://localhost:5000/api/slice
 
 
            (POST "/slice" request

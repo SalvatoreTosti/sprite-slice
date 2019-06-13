@@ -58,9 +58,9 @@
      (when (q/loaded? img)
        (q/image img (* x tile-size) (* y tile-size))))))
 
-(defn- save-image [tile-map id tile-size output-name]
+(defn- save-image [tile-map id tile-size output-name {:keys [output-location] :as args}]
   (draw-tile 0 0 tile-map id tile-size)
-  (q/save (str "generated/" output-name ".png")))
+  (q/save (str output-location output-name ".png")))
 
 ;;nabbed from https://stackoverflow.com/questions/17965763/zip-a-file-in-clojure
 (defn- zip-directory
@@ -74,11 +74,13 @@
    (zip-directory input-directory input-directory)))
 
 (defn- setup [{:keys [filename
-                     tile-size
-                     columns
-                     rows
-                     column-spacing-size
-                     row-spacing-size] :as args}]
+                      tile-size
+                      columns
+                      rows
+                      column-spacing-size
+                      row-spacing-size
+                      output-location
+                      output-filename] :as args}]
   (q/background 0)
   (q/frame-rate 1)
   (let [base-image (q/load-image filename)]
@@ -89,12 +91,11 @@
       (doseq [x (range tile-count)]
         (let [number-str (str x)
               k (keyword number-str)]
-        (save-image tile-map k tile-size number-str)))
-      (zip-directory "generated" "test-auto-zip2")
+        (save-image tile-map k tile-size number-str args)))
+      (zip-directory output-location (str output-location output-filename))
       )))
 
-(defn- draw [state]
-  (q/exit))
+(defn- draw [state] (q/exit))
 
 (defn slice-image [{:keys [tile-size] :as args}]
   (q/defsketch example
@@ -105,6 +106,8 @@
 
 (slice-image
   {:filename "resources/monochrome.png"
+   :output-location (str "generated" "/" "random_slug_123/")
+   :output-filename "random_slug_123"
    :tile-size 16
    :columns 2
    :rows 2

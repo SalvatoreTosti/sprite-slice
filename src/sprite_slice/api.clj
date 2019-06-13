@@ -16,62 +16,70 @@
    :headers {"Content-Type" "application/hal+json; charset=utf-8"}
    :body (json/write-str data)})
 
-(defn get-file [slug]
-  (file-response (str "output/" slug ".zip")))
-
-(defn get-file-ID [filename]
+(defn get-file-ID []
   (str (rand-int 1000000)))
 
 (defn parse-int [number-string]
   (try (Integer/parseInt number-string)
     (catch Exception e nil)))
 
+(defn upload-file [request]
+  (let [params (:params request)
+        filename (get-in params [:file :filename])
+        tempfile (get-in params [:file :tempfile])
+        slug (get-file-ID)]
+    (io/copy tempfile (io/file "uploads" slug))
+    {:slug slug}))
+
+(defn slice-file
+  ([request slug]
+  (let [body (:body request)
+        tile-size (get-in body ["tile-size"])
+        columns (get-in body ["columns"])
+        rows (get-in body ["rows"])
+        column-spacing-size (get-in body ["column-spacing-size"])
+        row-spacing-size (get-in body ["row-spacing-size"])]
+    (slice-image
+      {:filename (str "uploads/" slug)
+       :output-location (str "generated/" slug "/")
+       :output-filename (str slug)
+       :tile-size (parse-int tile-size)
+       :columns (parse-int columns)
+       :rows (parse-int rows)
+       :column-spacing-size (parse-int column-spacing-size)
+       :row-spacing-size (parse-int row-spacing-size)})
+    {:slug slug}))
+  ([request]
+   (slice-file request (get-in request [:body "slug"]))))
+
+(defn get-zip-filename [request]
+  (-> request
+      (get-in [:body "slug"])
+      (#(str "output/" % ".zip"))))
+
 (defroutes api-routes
   (context "/api" []
-           (GET "/" [] "API HELLO WORLD")
+;;            (POST "/run" request
+;;                  (let [slug (upload-file request)]))
 
-
-;;download file with curl -d '{"key":"zed", "yes":"ye"}' -H "Content-Type: application/json" -X POST http://localhost:5000/api/foo --output output.zip
 ;;curl -d '{"slug":"123"}' -H "Content-Type: application/json" -X POST http://localhost:5000/api/fetch --output output.zip
 
            (POST "/fetch" request
-                 (let [body (:body request)
-                       slug (get-in body["slug"])]
-                 (get-file slug)))
+                 (-> (get-zip-filename request)
+                     (file-response)))
 
 ;; curl -d '{"slug":"123", "tile-size":"16", "columns":"2", "rows":"2", "column-spacing-size":"1", "row-spacing-size":"1"}' -H "Content-Type: application/json" -X POST http://localhost:5000/api/slice
 
            (POST "/slice" request
-                 (let [body (:body request)
-                       slug (get-in body ["slug"])
-                       tile-size (get-in body ["tile-size"])
-                       columns (get-in body ["columns"])
-                       rows (get-in body ["rows"])
-                       column-spacing-size (get-in body ["column-spacing-size"])
-                       row-spacing-size (get-in body ["row-spacing-size"])]
-
-                   (slice-image
-                     {:filename (str "resources/" slug)
-                      :output-location (str "generated/" slug "/")
-                      :output-filename (str slug)
-                      :tile-size (parse-int tile-size)
-                      :columns (parse-int columns)
-                      :rows (parse-int rows)
-                      :column-spacing-size (parse-int column-spacing-size)
-                      :row-spacing-size (parse-int row-spacing-size)})
-                 (json-response {:slug slug})))
+                 (-> (slice-file request)
+                     (json-response)))
 
 ;;upload file with curl -XPOST -F file=@monochrome.png localhost:5000/api/upload
-           (POST "/upload"
-                 {{{tempfile :tempfile filename :filename} :file} :params :as params}
-                 (let [slug (get-file-ID filename)]
-                   (io/copy tempfile (io/file "uploads" slug))
-                   (json-response {:slug slug})))
+           (POST "/upload" request
+                 (-> (upload-file request)
+                     (json-response)))
 
            (route/not-found "Not Found API")))
-
-
-
 
 (def api
   (-> api-routes

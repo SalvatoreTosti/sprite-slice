@@ -64,8 +64,9 @@
 
 ;;nabbed from https://stackoverflow.com/questions/17965763/zip-a-file-in-clojure
 (defn- zip-directory
-  ([input-directory output-name]
-   (with-open [zip (java.util.zip.ZipOutputStream. (io/output-stream (str output-name ".zip")))]
+  ([input-directory output-directory output-name]
+   (.mkdir (java.io.File. output-directory))
+   (with-open [zip (java.util.zip.ZipOutputStream. (io/output-stream (str output-directory "/" output-name ".zip")))]
      (doseq [f (file-seq (io/file input-directory)) :when (.isFile f)]
        (.putNextEntry zip (java.util.zip.ZipEntry. (.getPath f)))
        (io/copy f zip)
@@ -92,8 +93,7 @@
         (let [number-str (str x)
               k (keyword number-str)]
         (save-image tile-map k tile-size number-str args)))
-      (zip-directory output-location (str output-location output-filename))
-      )))
+      (zip-directory output-location "output" output-filename))))
 
 (defn- draw [state] (q/exit))
 
@@ -104,12 +104,13 @@
     :draw draw
     :middleware [m/fun-mode]))
 
-(slice-image
-  {:filename "resources/monochrome.png"
-   :output-location (str "generated" "/" "random_slug_123/")
-   :output-filename "random_slug_123"
-   :tile-size 16
-   :columns 2
-   :rows 2
-   :column-spacing-size 1
-   :row-spacing-size 1})
+;; (slice-image
+;;   {:filename "resources/monochrome.png"
+;;    :output-location (str "generated" "/" "random_slug_123/")
+;;    :output-filename "random_slug_123"
+;;    :tile-size 16
+;;    :columns 2
+;;    :rows 2
+;;    :column-spacing-size 1
+;;    :row-spacing-size 1})
+

@@ -1,6 +1,7 @@
 (ns sprite-slice.api
   (:use [ring.util.response :only [response resource-response file-response]]
-        [ring.util.io :only [piped-input-stream]])
+        [ring.util.io :only [piped-input-stream]]
+        [sprite-slice.core :only [slice-image]])
   (:require [compojure.core :refer :all]
             [compojure.route :as route]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
@@ -21,6 +22,10 @@
 (defn get-file-ID [filename]
   (str (rand-int 1000000) "_" filename))
 
+(defn parse-int [number-string]
+  (try (Integer/parseInt number-string)
+    (catch Exception e nil)))
+
 (defroutes api-routes
   (context "/api" []
            (GET "/" [] "API HELLO WORLD")
@@ -32,14 +37,30 @@
            (POST "/foo" request
                  (get-file))
 
-;;    curl -d '{"id":"1"}' -H "Content-Type: application/json" -X POST http://localhost:5000/slice
+;; curl -d '{"slug"size":"16", "columns":"2", "rows":"2", "column-spacing-size":"1", "row-spacing-size":"1"}' -H "Content-Type: application/json" -X POST http://localhost:5000/api/slice
+
 
            (POST "/slice" request
                  (let [body (:body request)
-                       image-id (get-in body ["id"])])
-                 (json-response {:done "yep"})
+                       slug (get-in body ["slug"])
+                       tile-size (get-in body ["tile-size"])
+                       columns (get-in body ["columns"])
+                       rows (get-in body ["rows"])
+                       column-spacing-size (get-in body ["column-spacing-size"])
+                       row-spacing-size (get-in body ["row-spacing-size"])]
 
-                 )
+                   (slice-image
+                     {:filename (str "resources/" slug)
+                      :output-location (str "generated/" slug "/")
+                      :output-filename (str slug)
+                      :tile-size (parse-int tile-size)
+                      :columns (parse-int columns)
+                      :rows (parse-int rows)
+                      :column-spacing-size (parse-int column-spacing-size)
+                      :row-spacing-size (parse-int row-spacing-size)
+                      })
+                 (json-response {:done slug})))
+
 
 ;;upload file with curl -XPOST -F file=@telocalhost:5000/api/upload
            (POST "/upload"

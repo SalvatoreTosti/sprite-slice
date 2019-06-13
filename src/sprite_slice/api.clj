@@ -20,7 +20,7 @@
   (file-response (str "output/" slug ".zip")))
 
 (defn get-file-ID [filename]
-  (str (rand-int 1000000) "_" filename))
+  (str (rand-int 1000000)))
 
 (defn parse-int [number-string]
   (try (Integer/parseInt number-string)
@@ -41,7 +41,6 @@
 
 ;; curl -d '{"slug":"123", "tile-size":"16", "columns":"2", "rows":"2", "column-spacing-size":"1", "row-spacing-size":"1"}' -H "Content-Type: application/json" -X POST http://localhost:5000/api/slice
 
-
            (POST "/slice" request
                  (let [body (:body request)
                        slug (get-in body ["slug"])
@@ -59,21 +58,15 @@
                       :columns (parse-int columns)
                       :rows (parse-int rows)
                       :column-spacing-size (parse-int column-spacing-size)
-                      :row-spacing-size (parse-int row-spacing-size)
-                      })
-                 (json-response {:done slug})))
+                      :row-spacing-size (parse-int row-spacing-size)})
+                 (json-response {:slug slug})))
 
-
-;;upload file with curl -XPOST -F file=@telocalhost:5000/api/upload
+;;upload file with curl -XPOST -F file=@monochrome.png localhost:5000/api/upload
            (POST "/upload"
                  {{{tempfile :tempfile filename :filename} :file} :params :as params}
-                 (let [server-file-name (get-file-ID filename)]
-                   (println params)
-                   (io/copy tempfile (io/file "resources" "public" server-file-name))
-                   (json-response {:name server-file-name})))
-
-
-;;                    image-id))
+                 (let [slug (get-file-ID filename)]
+                   (io/copy tempfile (io/file "uploads" slug))
+                   (json-response {:slug slug})))
 
            (route/not-found "Not Found API")))
 

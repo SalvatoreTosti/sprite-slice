@@ -33,12 +33,12 @@
 
 (defn slice-file
   ([request slug]
-  (let [body (:body request)
-        tile-size (get-in body ["tile-size"])
-        columns (get-in body ["columns"])
-        rows (get-in body ["rows"])
-        column-spacing-size (get-in body ["column-spacing-size"])
-        row-spacing-size (get-in body ["row-spacing-size"])]
+  (let [params (:params request)
+        tile-size (get-in params [:tile-size])
+        columns (get-in params [:columns])
+        rows (get-in params [:rows])
+        column-spacing-size (get-in params [:column-spacing-size])
+        row-spacing-size (get-in params [:row-spacing-size])]
     (slice-image
       {:filename (str "uploads/" slug)
        :output-location (str "generated/" slug "/")
@@ -60,27 +60,24 @@
       (get-in [:body "slug"])
       (slug-to-zip-name)))
 
+(defn transmit-file [path]
+  (let [file (java.io.File. path)]
+    {:status 200
+     :body file
+     :headers {"Content-Type" "application/zip"
+               "Content-Length" (str (.length file))
+               "Cache-Control" "no-cache"
+               "Content-Disposition" (str "attachment; filename="(.getName file))}}))
+
 (defroutes api-routes
   (context "/api" []
-
-           ;;curl -XPOST -d '{"tile-size":"16", "columns":"5", "rows":"5", "column-spacing-size":"1", "row-spacing-size":"1"}' -F file=@monochrome.png localhost:5000/api/run --output output.zip
            (POST "/run" request
                  (let [slug (upload-file request)
-                       slug (slice-file request slug)
-                       zip-name (slug-to-zip-name slug)]
-                       (file-response zip-name)))
-
-;;curl -d '{"slug":"123"}' -H "Content-Type: application/json" -X POST http://localhost:5000/api/fetch --output output.zip
-
-           (POST "/fetch" request
-                 (-> (get-zip-filename request)
-                     (file-response)))
-
-;; curl -d '{"slug":"123", "tile-size":"16", "columns":"2", "rows":"2", "column-spacing-size":"1", "row-spacing-size":"1"}' -H "Content-Type: application/json" -X POST http://localhost:5000/api/slice
-
-           (POST "/slice" request
-                 (-> (slice-file request)
-                     (json-response)))
+                       slug (slice-file request (:slug slug))
+                       zip-name (slug-to-zip-name (:slug slug))]
+                   (while (not (file-response zip-name))
+                       (Thread/sleep 1000))
+                   (transmit-file zip-name)))
 
 ;;upload file with curl -XPOST -F file=@monochrome.png localhost:5000/api/upload
            ;;curl -XPOST -d '{"file" : "@monochrome.png"}' localhost:5000/api/test
@@ -88,6 +85,21 @@
            (POST "/upload" request
                  (-> (upload-file request)
                      (json-response)))
+
+           (GET "/display" request
+                (-> (file-response "uploads/74848.png")))
+
+;; curl -d '{"slug":"123", "tile-size":"16", "columns":"2", "rows":"2", "column-spacing-size":"1", "row-spacing-size":"1"}' -H "Content-Type: application/json" -X POST http://localhost:5000/api/slice
+
+           (POST "/slice" request
+                 (-> (slice-file request)
+                     (json-response)))
+
+;;curl -d '{"slug":"123"}' -H "Content-Type: application/json" -X POST http://localhost:5000/api/fetch --output output.zip
+
+           (POST "/fetch" request
+                 (-> (get-zip-filename request)
+                     (file-response)))
 
            (route/not-found "Not Found API")))
 

@@ -2,13 +2,15 @@
   (:use [ring.util.response :only [response]])
   (:require [compojure.core :refer :all]
             [compojure.route :as route]
+            [clojure.data.json :as json]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [ring.middleware.json :refer [wrap-json-body wrap-json-response]]
             [ring.middleware.params :refer [wrap-params]]
-            [clojure.data.json :as json]))
+            [selmer.parser :refer [render-file]]))
 
 (defroutes site-routes
-  (GET "/" [] "Hello World")
+  (GET "/" []
+       (render-file "public/html/index.html" {}))
 
   ;; test with curl -d '{"key, "yes":"ye"}' -H "Content-Type: application/json" -X POST http://localhost:5000/foo
 

@@ -52,15 +52,23 @@
   ([request]
    (slice-file request (get-in request [:body "slug"]))))
 
+(defn- slug-to-zip-name [slug]
+  (str "output/" slug ".zip"))
+
 (defn get-zip-filename [request]
   (-> request
       (get-in [:body "slug"])
-      (#(str "output/" % ".zip"))))
+      (slug-to-zip-name)))
 
 (defroutes api-routes
   (context "/api" []
-;;            (POST "/run" request
-;;                  (let [slug (upload-file request)]))
+
+           ;;curl -XPOST -d '{"tile-size":"16", "columns":"5", "rows":"5", "column-spacing-size":"1", "row-spacing-size":"1"}' -F file=@monochrome.png localhost:5000/api/run --output output.zip
+           (POST "/run" request
+                 (let [slug (upload-file request)
+                       slug (slice-file request slug)
+                       zip-name (slug-to-zip-name slug)]
+                       (file-response zip-name)))
 
 ;;curl -d '{"slug":"123"}' -H "Content-Type: application/json" -X POST http://localhost:5000/api/fetch --output output.zip
 
@@ -75,6 +83,8 @@
                      (json-response)))
 
 ;;upload file with curl -XPOST -F file=@monochrome.png localhost:5000/api/upload
+           ;;curl -XPOST -d '{"file" : "@monochrome.png"}' localhost:5000/api/test
+
            (POST "/upload" request
                  (-> (upload-file request)
                      (json-response)))

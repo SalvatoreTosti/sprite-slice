@@ -11,19 +11,19 @@
             [clojure.java.io :as io]
             [clojure.data.json :as json]))
 
-(defn json-response [data & [status]]
+(defn- json-response [data & [status]]
   {:status (or status 200)
    :headers {"Content-Type" "application/hal+json; charset=utf-8"}
    :body (json/write-str data)})
 
-(defn get-file-ID []
+(defn- get-file-ID []
   (str (java.util.UUID/randomUUID)))
 
-(defn parse-int [number-string]
+(defn- parse-int [number-string]
   (try (Integer/parseInt number-string)
     (catch Exception e nil)))
 
-(defn upload-file [request]
+(defn- upload-file [request]
   (let [params (:params request)
         filename (get-in params [:file :filename])
         tempfile (get-in params [:file :tempfile])
@@ -31,7 +31,7 @@
     (io/copy tempfile (io/file "uploads" slug))
     {:slug slug}))
 
-(defn slice-file
+(defn- slice-file
   ([request slug]
   (let [params (:params request)
         tile-size (get-in params [:tile-size])
@@ -55,12 +55,12 @@
 (defn- slug-to-zip-name [slug]
   (str "output/" slug ".zip"))
 
-(defn get-zip-filename [request]
+(defn- get-zip-filename [request]
   (-> request
       (get-in [:body "slug"])
       (slug-to-zip-name)))
 
-(defn transmit-file [path]
+(defn- transmit-zip-file [path]
   (let [file (java.io.File. path)]
     {:status 200
      :body file
@@ -69,35 +69,45 @@
                "Cache-Control" "no-cache"
                "Content-Disposition" (str "attachment; filename="(.getName file))}}))
 
+(defn initialize-directories []
+  (.mkdir (io/file "uploads"))
+  (.mkdir (io/file "output"))
+  (.mkdir (io/file "generated")))
+
 (defroutes api-routes
   (context "/api" []
            (POST "/run" request
+                 (initialize-directories)
                  (let [slug (upload-file request)
                        slug (slice-file request (:slug slug))
                        zip-name (slug-to-zip-name (:slug slug))]
                    (while (not (file-response zip-name))
                        (Thread/sleep 1000))
-                   (transmit-file zip-name)))
+                   (transmit-zip-file zip-name)))
 
-;;upload file with curl -XPOST -F file=@monochrome.png localhost:5000/api/upload
+           (GET "/display" request
+                (initialize-directories)
+                (-> (file-response "uploads/74848.png")))
+
+           ;;upload file with curl -XPOST -F file=@monochrome.png localhost:5000/api/upload
            ;;curl -XPOST -d '{"file" : "@monochrome.png"}' localhost:5000/api/test
 
            (POST "/upload" request
+                 (initialize-directories)
                  (-> (upload-file request)
                      (json-response)))
-
-           (GET "/display" request
-                (-> (file-response "uploads/74848.png")))
 
 ;; curl -d '{"slug":"123", "tile-size":"16", "columns":"2", "rows":"2", "column-spacing-size":"1", "row-spacing-size":"1"}' -H "Content-Type: application/json" -X POST http://localhost:5000/api/slice
 
            (POST "/slice" request
+                 (initialize-directories)
                  (-> (slice-file request)
                      (json-response)))
 
 ;;curl -d '{"slug":"123"}' -H "Content-Type: application/json" -X POST http://localhost:5000/api/fetch --output output.zip
 
            (POST "/fetch" request
+                 (initialize-directories)
                  (-> (get-zip-filename request)
                      (file-response)))
 

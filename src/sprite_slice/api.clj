@@ -17,7 +17,7 @@
    :body (json/write-str data)})
 
 (defn get-file-ID []
-  (str (rand-int 1000000)))
+  (str (java.util.UUID/randomUUID)))
 
 (defn parse-int [number-string]
   (try (Integer/parseInt number-string)

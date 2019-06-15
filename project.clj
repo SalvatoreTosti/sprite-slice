@@ -8,8 +8,9 @@
                  [quil "3.0.0"]
                  [ring/ring-json "0.4.0"]
                  [org.clojure/data.json "0.2.6"]
-                 [selmer "1.12.12"]]
-  :main sprite-slice.core
+                 [selmer "1.12.12"]
+                 [ring "1.7.1"]]
+  :main sprite-slice.handler
   :plugins [[lein-ring "0.12.5"]]
   :ring {:handler sprite-slice.handler/app
          :port 5000}

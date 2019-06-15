@@ -46,8 +46,6 @@
        (map #(get-tile-row source-image % args))
        (into {})))
 
-;; (def get-tiles (memoize get-tile-map))
-
 (defn- draw-image [x y img tile-size]
   (when (q/loaded? img)
     (q/image img (* x tile-size) (* y tile-size))))
@@ -103,14 +101,3 @@
     :setup (fn [] (setup args))
     :draw draw
     :middleware [m/fun-mode]))
-
-;; (slice-image
-;;   {:filename "resources/monochrome.png"
-;;    :output-location (str "generated" "/" "random_slug_123/")
-;;    :output-filename "random_slug_123"
-;;    :tile-size 16
-;;    :columns 2
-;;    :rows 2
-;;    :column-spacing-size 1
-;;    :row-spacing-size 1})
-

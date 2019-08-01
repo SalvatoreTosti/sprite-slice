@@ -11,6 +11,7 @@
                  [selmer "1.12.12"]
                  [ring "1.7.1"]]
   :main sprite-slice.handler
+  :aot [sprite-slice.handler]
   :plugins [[lein-ring "0.12.5"]]
   :ring {:handler sprite-slice.handler/app
          :port 5000}

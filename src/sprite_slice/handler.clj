@@ -2,7 +2,8 @@
   (:require [compojure.core :refer :all]
             [sprite-slice.api :refer [api]]
             [sprite-slice.site :refer [site]]
-            [ring.adapter.jetty :as jetty]))
+            [ring.adapter.jetty :as jetty])
+  (:gen-class))
 
 (def app (routes api site))
 

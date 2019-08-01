@@ -1,7 +1,7 @@
 (ns sprite-slice.api
   (:use [ring.util.response :only [response resource-response file-response]]
         [ring.util.io :only [piped-input-stream]]
-        [sprite-slice.core :only [slice-image]])
+        [sprite-slice.core :only [run!]])
   (:require [compojure.core :refer :all]
             [compojure.route :as route]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
@@ -39,7 +39,7 @@
         rows (get-in params [:rows])
         column-spacing-size (get-in params [:column-spacing-size])
         row-spacing-size (get-in params [:row-spacing-size])]
-    (slice-image
+    (run!
       {:filename (str "uploads/" slug)
        :output-location (str "generated/" slug "/")
        :output-filename (str slug)

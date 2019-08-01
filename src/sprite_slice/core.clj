@@ -1,4 +1,6 @@
 (ns sprite-slice.core
+  (:import [javax.imageio ImageIO])
+  (:import [java.io File])
   (:require [quil.core :as q]
             [quil.middleware :as m]
             [clojure.java.io :as io]))
@@ -9,15 +11,27 @@
 (defn- get-start [number tile-size spacing-size]
   (+ (* tile-size number) (get-offset number spacing-size)))
 
+(defn copy-image [source-image [x-start y-start] [x-end y-end]]
+  (let [copy-img (java.awt.image.BufferedImage.
+                   (- x-end x-start)
+                   (- y-end y-start)
+                   java.awt.image.BufferedImage/TYPE_INT_ARGB)]
+    (doseq [x (range x-start x-end)
+            y (range y-start y-end)]
+            (.setRGB
+              copy-img
+              (- x x-start)
+              (- y y-start)
+              (.getRGB source-image x y)))
+    copy-img))
+
 (defn- get-tile [source-image
                  column-number
                  row-number
                  {:keys [tile-size column-spacing-size row-spacing-size] :as args}]
   (let [col-start (get-start column-number tile-size column-spacing-size)
-        row-start (get-start row-number tile-size row-spacing-size)
-        img (q/create-image tile-size tile-size :rgb)]
-    (q/copy source-image img [col-start row-start tile-size tile-size] [0 0 tile-size tile-size])
-    img))
+        row-start (get-start row-number tile-size row-spacing-size)]
+    (copy-image source-image [col-start row-start] [(+ col-start tile-size) (+ row-start tile-size)])))
 
 (defn- get-tile-row
   ([image
@@ -57,6 +71,7 @@
        (q/image img (* x tile-size) (* y tile-size))))))
 
 (defn- save-image [tile-map id tile-size output-name {:keys [output-location] :as args}]
+;;   (save-image-zed
   (draw-tile 0 0 tile-map id tile-size)
   (q/save (str output-location output-name ".png")))
 
@@ -72,32 +87,78 @@
   ([input-directory]
    (zip-directory input-directory input-directory)))
 
-(defn- setup [{:keys [filename
-                      tile-size
-                      columns
-                      rows
-                      column-spacing-size
-                      row-spacing-size
-                      output-location
-                      output-filename] :as args}]
-  (q/background 0)
-  (q/frame-rate 1)
-  (let [base-image (q/load-image filename)]
-   (while (not (q/loaded? base-image))
-      nil)
-    (let [tile-map (get-tile-map base-image args)
-          tile-count (* columns rows)]
-      (doseq [x (range tile-count)]
-        (let [number-str (str x)
-              k (keyword number-str)]
-        (save-image tile-map k tile-size number-str args)))
-      (zip-directory output-location "output" output-filename))))
+;; (defn- setup [{:keys [filename
+;;                       tile-size
+;;                       columns
+;;                       rows
+;;                       column-spacing-size
+;;                       row-spacing-size
+;;                       output-location
+;;                       output-filename] :as args}]
+;;   (q/background 0)
+;;   (q/frame-rate 1)
+;;   (let [base-image (q/load-image filename)]
+;;     (while (not (q/loaded? base-image))
+;;       nil)
+;;     (let [tile-map (get-tile-map base-image args)
+;;           tile-count (* columns rows)]
+;;       (doseq [x (range tile-count)]
+;;         (let [number-str (str x)
+;;               k (keyword number-str)]
+;;         (save-image tile-map k tile-size number-str args)))
+;;       (zip-directory output-location "output" output-filename))))
 
-(defn- draw [state] (q/exit))
+;; (defn- draw [state] (q/exit))
 
-(defn slice-image [{:keys [tile-size] :as args}]
-  (q/defsketch example
-    :size [tile-size tile-size]
-    :setup (fn [] (setup args))
-    :draw draw
-    :middleware [m/fun-mode]))
+;; (defn slice-image [{:keys [tile-size] :as args}]
+;;   (q/defsketch example
+;;     :size [tile-size tile-size]
+;;     :setup (fn [] (setup args))
+;;     :draw draw
+;;     :middleware [m/fun-mode]))
+
+
+;; (run! {
+;;         :filename "test.png"
+;;         :tile-size 16
+;;         :columns 4
+;;         :rows 4
+;;         :column-spacing-size 1
+;;         :row-spacing-size 1
+;;         :output-location (str "generated/" "test-output" "/")
+;;         :output-filename "test-output"
+;;       })
+
+(defn save-image [img full-path]
+  (ImageIO/write img "png" (clojure.java.io/file full-path)))
+
+(defn save-entry [[k v] directory]
+  (save-image v (str directory "/" (name k) ".png")))
+
+(defn slice-image [{:keys
+                    [filename
+                     tile-size
+                     columns
+                     rows
+                     column-spacing-size
+                     row-spacing-size
+                     output-location] :as args}]
+    (let [img (ImageIO/read (File. filename))
+          image-entries (-> img
+                            (get-tile-map args)
+                            seq)]
+          (doseq [entry image-entries]
+            (save-entry entry output-location))))
+
+(defn run! [{:keys
+             [filename
+              tile-size
+              columns
+              rows
+              column-spacing-size
+              row-spacing-size
+              output-location
+              output-filename] :as args}]
+  (.mkdir (java.io.File. output-location))
+  (slice-image args)
+  (zip-directory output-location "output" output-filename))

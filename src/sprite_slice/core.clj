@@ -71,7 +71,6 @@
        (q/image img (* x tile-size) (* y tile-size))))))
 
 (defn- save-image [tile-map id tile-size output-name {:keys [output-location] :as args}]
-;;   (save-image-zed
   (draw-tile 0 0 tile-map id tile-size)
   (q/save (str output-location output-name ".png")))
 
@@ -86,48 +85,6 @@
        (.closeEntry zip))))
   ([input-directory]
    (zip-directory input-directory input-directory)))
-
-;; (defn- setup [{:keys [filename
-;;                       tile-size
-;;                       columns
-;;                       rows
-;;                       column-spacing-size
-;;                       row-spacing-size
-;;                       output-location
-;;                       output-filename] :as args}]
-;;   (q/background 0)
-;;   (q/frame-rate 1)
-;;   (let [base-image (q/load-image filename)]
-;;     (while (not (q/loaded? base-image))
-;;       nil)
-;;     (let [tile-map (get-tile-map base-image args)
-;;           tile-count (* columns rows)]
-;;       (doseq [x (range tile-count)]
-;;         (let [number-str (str x)
-;;               k (keyword number-str)]
-;;         (save-image tile-map k tile-size number-str args)))
-;;       (zip-directory output-location "output" output-filename))))
-
-;; (defn- draw [state] (q/exit))
-
-;; (defn slice-image [{:keys [tile-size] :as args}]
-;;   (q/defsketch example
-;;     :size [tile-size tile-size]
-;;     :setup (fn [] (setup args))
-;;     :draw draw
-;;     :middleware [m/fun-mode]))
-
-
-;; (run! {
-;;         :filename "test.png"
-;;         :tile-size 16
-;;         :columns 4
-;;         :rows 4
-;;         :column-spacing-size 1
-;;         :row-spacing-size 1
-;;         :output-location (str "generated/" "test-output" "/")
-;;         :output-filename "test-output"
-;;       })
 
 (defn save-image [img full-path]
   (ImageIO/write img "png" (clojure.java.io/file full-path)))

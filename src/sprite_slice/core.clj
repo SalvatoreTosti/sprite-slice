@@ -11,19 +11,38 @@
 (defn- get-start [number tile-size spacing-size]
   (+ (* tile-size number) (get-offset number spacing-size)))
 
+
 (defn copy-image [source-image [x-start y-start] [x-end y-end]]
-  (let [copy-img (java.awt.image.BufferedImage.
+  (let [source-width (.getWidth source-image)
+        source-height (.getHeight source-image)
+
+        clamped-x-start (if (< x-start source-width) x-start source-width)
+        clamped-x-end (if (< x-end source-width) x-end source-width)
+
+        clamped-y-start (if (< y-start source-height) y-start source-height)
+        clamped-y-end (if (< y-end source-height) y-end source-height)
+
+        x-diff (- clamped-x-start clamped-x-end)
+        y-diff (- clamped-y-start clamped-y-end)
+        copy-img (java.awt.image.BufferedImage.
                    (- x-end x-start)
                    (- y-end y-start)
                    java.awt.image.BufferedImage/TYPE_INT_ARGB)]
-    (doseq [x (range x-start x-end)
-            y (range y-start y-end)]
-            (.setRGB
-              copy-img
-              (- x x-start)
-              (- y y-start)
-              (.getRGB source-image x y)))
-    copy-img))
+    (if
+      (empty?
+        (filter #(not (zero? %))
+        [clamped-x-start, clamped-x-end, clamped-y-start, clamped-y-end]
+        ))
+      nil
+    (do
+      (doseq [x (range clamped-x-start clamped-x-end)
+              y (range clamped-y-start clamped-y-end)]
+              (.setRGB
+                copy-img
+                (- x clamped-x-start)
+                (- y clamped-y-start)
+                (.getRGB source-image x y)))
+      copy-img))))
 
 (defn- get-tile [source-image
                  column-number
@@ -59,20 +78,6 @@
   (->> (range rows)
        (map #(get-tile-row source-image % args))
        (into {})))
-
-(defn- draw-image [x y img tile-size]
-  (when (q/loaded? img)
-    (q/image img (* x tile-size) (* y tile-size))))
-
-(defn- draw-tile
-  ([x y tile-map id tile-size]
-   (let [img (id tile-map)]
-     (when (q/loaded? img)
-       (q/image img (* x tile-size) (* y tile-size))))))
-
-(defn- save-image [tile-map id tile-size output-name {:keys [output-location] :as args}]
-  (draw-tile 0 0 tile-map id tile-size)
-  (q/save (str output-location output-name ".png")))
 
 ;;nabbed from https://stackoverflow.com/questions/17965763/zip-a-file-in-clojure
 (defn- zip-directory
